@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Calculate</title>
+  <link href="./css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-3">
+        <h3>单价计算</h3>
+        <form>
+          <div class="form-group">
+            <label for="input1">总量</label>
+            <input type="number" class="form-control" id="total" placeholder="请输入数字">
+          </div>
+          <div class="form-group">
+            <label for="input2">价格下限</label>
+            <input type="number" class="form-control" id="lowest" placeholder="请输入整数">
+          </div>
+          <div class="form-group">
+            <label for="input3">价格上限</label>
+            <input type="number" class="form-control" id="highest" placeholder="请输入整数">
+          </div>
+          <div class="form-group">
+            <label for="input4">价格递增步长</label>
+            <input type="number" class="form-control" id="interval" placeholder="请输入整数">
+          </div>
+          <button type="button" class="btn btn-primary" id="confirm">提交</button>
+          <button type="button" class="btn btn-default" id="clear">清空</button>
+        </form>
+      </div>
+      <div class="col-md-4">
+        <h3>计算结果</h3>
+        <div id="result">
+          <table class="table table-striped table-condensed table-bordered table-centered" id="resultTable">
+            <thead>
+              <tr>
+                <th>吨数</th>
+                <th>单价</th>
+              </tr>
+            </thead>
+            <tbody>
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./js/jquery-1.12.4.min.js"></script>
+  <script src="./js/bootstrap.min.js"></script>
+  <script src="./js/decimal.js"></script>
+  <script>
+    $(function(){
+      showResults();
+
+      $('#clear').click(function(){
+        $('input').val('')
+        $('#resultTable tbody').html('')
+      })
+
+      $('#confirm').click(function(){
+        var total = parseFloat($('#total').val());
+        var lowest = parseInt($('#lowest').val());
+        var highest = parseInt($('#highest').val());
+        var interval = parseInt($('#interval').val());
+
+        if(lowest > highest) {
+          alert('价格下限要小于价格上限！请检查！')
+          return
+        }
+
+        if(!Number.isInteger(lowest) || !Number.isInteger(highest) || !Number.isInteger(interval)){
+          alert('价格下限、价格上限、价格递增步长 都需要为整数！请检查！')
+          return
+        }
+
+        resultsPrices = []
+        results = []
+        for(var begin=lowest; begin<=highest; begin+=interval){
+          if(isDivisible(total, begin)) {
+            resultsPrices.push(begin)
+            results.push(Decimal(total).dividedBy(begin).toString())
+          }
+        }
+        // 保存上一次的输入和计算结果
+        localStorage.setItem('inputs', JSON.stringify({'total': total, 'lowest': lowest, 'highest': highest, 'interval': interval}))
+        localStorage.setItem('resultsPrices', JSON.stringify(resultsPrices));
+        localStorage.setItem('results', JSON.stringify(results));
+
+        $('#resultTable tbody').html('')
+        showResults()
+      })
+
+      function isDivisible(a, b) {
+        deciNum = new Decimal(a)
+        if(deciNum.mod(b).equals(0)) { return true }
+
+        var quotient = deciNum.dividedBy(b)
+        var regExp = /^\d+(\.\d{1,3})?$/;
+        return regExp.test(quotient.toString());
+      }
+
+      function showResults() {
+        var inputs = JSON.parse(localStorage.getItem('inputs')) || {}
+        if(inputs) {
+          $('#total').val(inputs['total']);
+          $('#lowest').val(inputs['lowest']);
+          $('#highest').val(inputs['highest']);
+          $('#interval').val(inputs['interval']);
+        }
+
+        var resultsPrices = JSON.parse(localStorage.getItem('resultsPrices')) || []
+        var results = JSON.parse(localStorage.getItem('results')) || []
+        $.each(resultsPrices, function(index, price){
+          $('#resultTable tbody').append('<tr><td>' + results[index] + '</td><td>' + price + '</td></tr>')
+        })
+      }
+
+    })
+  </script>
+</body>
+</html>
